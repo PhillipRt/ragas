@@ -154,10 +154,11 @@ class AnswerRelevancy(MetricWithLLM, MetricWithEmbeddings):
         for _ in range(self.strictness):
             result = await self.llm.generate(
                 prompt,
-                n=1,  # Always use n=1
+                n=1,
                 callbacks=callbacks,
             )
-            answer = await _output_parser.aparse(result.text, prompt, self.llm)
+            generated_text = result.generations[0][0].text
+            answer = await _output_parser.aparse(generated_text, prompt, self.llm)
             if answer is not None:
                 answers.append(answer)
 
