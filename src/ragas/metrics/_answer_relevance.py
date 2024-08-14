@@ -149,20 +149,21 @@ class AnswerRelevancy(MetricWithLLM, MetricWithEmbeddings):
         assert self.llm is not None, "LLM is not set"
 
         prompt = self._create_question_gen_prompt(row)
-        result = await self.llm.generate(
-            prompt,
-            n=self.strictness,
-            callbacks=callbacks,
-        )
+        
+        answers = []
+        for _ in range(self.strictness):
+            result = await self.llm.generate(
+                prompt,
+                n=1,  # Always use n=1
+                callbacks=callbacks,
+            )
+            answer = await _output_parser.aparse(result.text, prompt, self.llm)
+            if answer is not None:
+                answers.append(answer)
 
-        answers = [
-            await _output_parser.aparse(result.text, prompt, self.llm)
-            for result in result.generations[0]
-        ]
-        if any(answer is None for answer in answers):
+        if not answers:
             return np.nan
 
-        answers = [answer for answer in answers if answer is not None]
         return self._calculate_score(answers, row)
 
     def adapt(self, language: str, cache_dir: str | None = None) -> None:
